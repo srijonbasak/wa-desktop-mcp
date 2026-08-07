@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project Runtime / User Session Data
+.wa_session/
+config.json
+crm.json
+local_messages.json
+*.log
+
+# PyInstaller / Build Artifacts
+build/
+dist/
+*.manifest
+*.spec
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
