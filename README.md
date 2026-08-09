@@ -1,5 +1,9 @@
 # 🚀 WhatsApp Desktop MCP & Headless AI CRM Companion
 
+<p align="center">
+  <img src="asset/logo.png" width="128" alt="WhatsApp MCP Logo" />
+</p>
+
 > An all-in-one local desktop companion that connects your WhatsApp Web directly to Google Gemini, Claude, Cursor, and other AI tools over the **Model Context Protocol (MCP)**. Features an **invisible local AI CRM** with automated pipeline tracking and a human-in-the-loop "Draft & Approve" workflow.
 
 ---
@@ -12,6 +16,22 @@
 - ⚡ **High Context Density**: The `read_chats` tool automatically attaches CRM tags, notes, and pipeline stages in one single request—minimizing tool calling overhead.
 - 🌐 **Remote Tunnel Integration**: Built-in `ngrok` tunneling for connecting external AI models securely via HTTPS / Server-Sent Events (SSE).
 - 🔒 **100% Local & Private**: All session cookies, message logs, and CRM data remain strictly on your local computer (`.wa_session/`).
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+  <img src="asset/1.png" width="45%" alt="Screenshot 1" style="margin: 1%" />
+  <img src="asset/2.png" width="45%" alt="Screenshot 2" style="margin: 1%" />
+</div>
+<div align="center">
+  <img src="asset/3.png" width="45%" alt="Screenshot 3" style="margin: 1%" />
+  <img src="asset/4.png" width="45%" alt="Screenshot 4" style="margin: 1%" />
+</div>
+<div align="center">
+  <img src="asset/5.png" width="45%" alt="Screenshot 5" style="margin: 1%" />
+</div>
 
 ---
 
