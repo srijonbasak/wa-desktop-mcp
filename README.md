@@ -39,7 +39,7 @@
 
 ### Option A: 1-Click Windows Setup Installer (Recommended)
 
-1. Download `WhatsApp_MCP_Setup.exe` from the [Releases](https://github.com/your-username/wa-desktop-mcp/releases) page.
+1. Download `WhatsApp_MCP_Setup.exe` from the [Releases](https://github.com/srijonbasak/wa-desktop-mcp/releases) page.
 2. Double-click `WhatsApp_MCP_Setup.exe` to launch the Setup Wizard.
 3. Click **Install Now**. The installer will automatically:
    - Install the application to `%LOCALAPPDATA%\Programs\WhatsApp MCP Companion`.
@@ -56,7 +56,7 @@
 #### Installation Steps
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/wa-desktop-mcp.git
+git clone https://github.com/srijonbasak/wa-desktop-mcp.git
 cd wa-desktop-mcp
 
 # 2. Create and activate a virtual environment
