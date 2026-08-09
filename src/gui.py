@@ -30,7 +30,7 @@ class JSAPI:
                 if mode == "web":
                     window.load_url("https://web.whatsapp.com")
                 else:
-                    window.load_url("http://127.0.0.1:8000")
+                    window.load_url("http://127.0.0.1:48211")
         
         threading.Thread(target=defer_redirect, daemon=True).start()
 
@@ -71,6 +71,13 @@ def _inject_settings_button():
     except Exception as e:
         logger.debug(f"Failed to inject settings button: {e}")
 
+def get_asset_path(filename):
+    import sys
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, 'asset', filename)
+    # If running locally from source
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'asset', filename)
+
 def start_gui():
     global window
     config = load_config()
@@ -79,7 +86,7 @@ def start_gui():
     if mode == "web":
         start_url = "https://web.whatsapp.com"
     else:
-        start_url = "http://127.0.0.1:8000"
+        start_url = "http://127.0.0.1:48211"
         
     logger.info("Initializing PyWebView wrapper window...")
     js_api = JSAPI()
@@ -88,11 +95,12 @@ def start_gui():
         url=start_url,
         js_api=js_api,
         width=1150,
-        height=780
+        height=780,
+        minimized=True
     )
     
     # Bind the injection logic to trigger natively when the page loads
     window.events.loaded += _inject_settings_button
     
     # Enable session cookies & local storage inside local .wa_session/ path
-    webview.start(private_mode=False, storage_path=SESSION_PATH)
+    webview.start(private_mode=False, storage_path=SESSION_PATH, icon=get_asset_path('logo.ico'))

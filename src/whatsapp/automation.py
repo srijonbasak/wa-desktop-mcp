@@ -175,3 +175,15 @@ JS_DRAFT_MESSAGE = """
     }
 })("{text}")
 """
+
+JS_NAVIGATE_CHAT = """
+(function(phone) {
+    try {
+        window.history.pushState(null, "", "/send?phone=" + phone);
+        window.dispatchEvent(new PopStateEvent("popstate"));
+        return true;
+    } catch(e) {
+        return false;
+    }
+})("{phone}")
+"""

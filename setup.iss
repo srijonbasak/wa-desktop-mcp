@@ -12,6 +12,9 @@ OutputDir=builds
 OutputBaseFilename=WhatsApp_MCP_Setup
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
+CloseApplications=yes
+RestartApplications=no
+SetupIconFile=asset\logo.ico
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:"

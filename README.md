@@ -26,7 +26,7 @@
    - Create a **Desktop Shortcut** (`WhatsApp MCP Companion`).
    - Create a **Start Menu Entry** in Windows Start Menu.
    - Register the application in Windows Settings (Add/Remove Programs).
-4. On launch, log in to WhatsApp Web by scanning the QR code with your phone. Your companion server will start running locally at `http://127.0.0.1:8000`.
+4. On launch, log in to WhatsApp Web by scanning the QR code with your phone. Your companion server will start running locally at `http://127.0.0.1:48211`.
 
 ### Option B: Running from Source (Developer Setup)
 
@@ -57,7 +57,7 @@ python run.py
 ### 1. Connecting via SSE Endpoint
 In your MCP client settings (e.g. Gemini, Claude Desktop, or Cursor):
 - **Transport Type**: `sse`
-- **Server URL**: `http://127.0.0.1:8000/sse` (or your public ngrok URL if using remote tunneling).
+- **Server URL**: `http://127.0.0.1:48211/sse` (or your public ngrok URL if using remote tunneling).
 
 ---
 

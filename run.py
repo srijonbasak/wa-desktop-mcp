@@ -1,6 +1,26 @@
 import threading
 import logging
 import uvicorn
+import os
+import subprocess
+import ctypes
+
+# Suppress all subprocess terminal popups on Windows (fixes pyngrok black box)
+if os.name == 'nt':
+    class _CustomPopen(subprocess.Popen):
+        def __init__(self, *args, **kwargs):
+            if 'creationflags' not in kwargs:
+                kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
+            super().__init__(*args, **kwargs)
+    subprocess.Popen = _CustomPopen
+
+    # Force Windows to use our custom icon in the taskbar instead of the default Python icon
+    try:
+        myappid = 'wa-desktop-mcp.companion.1.0'
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except Exception:
+        pass
+
 from src.server import app
 from src.gui import start_gui
 
@@ -12,8 +32,8 @@ logging.basicConfig(
 logger = logging.getLogger("wa-desktop-mcp.bootstrap")
 
 def start_fastapi():
-    logger.info("Starting background FastAPI server on port 8000...")
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    logger.info("Starting background FastAPI server on port 48211...")
+    uvicorn.run(app, host="127.0.0.1", port=48211, log_level="info")
 
 def main():
     # 1. Start FastAPI server thread
@@ -32,6 +52,7 @@ def main():
     finally:
         logger.info("Application shutting down, releasing active tunnels...")
         stop_tunnel()
+        os._exit(0)
 
 if __name__ == "__main__":
     main()

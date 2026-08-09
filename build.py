@@ -15,6 +15,10 @@ def main():
         "--windowed",  # No console
         "--noconfirm", # Overwrite output
         "--onedir",    # Output as a directory (needed for InnoSetup later)
+        "--icon", "asset/logo.ico",
+        "--add-data", f"src/templates{os.pathsep}src/templates",
+        "--add-data", f"src/static{os.pathsep}src/static",
+        "--add-data", f"asset{os.pathsep}asset",
         "--hidden-import", "uvicorn.logging",
         "--hidden-import", "uvicorn.loops",
         "--hidden-import", "uvicorn.loops.auto",

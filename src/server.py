@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request, Form, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from .config import load_config, save_config
 from .database import load_messages, save_messages
-from .templates import HTML_CONFIG_PAGE
+
 
 logger = logging.getLogger("wa-desktop-mcp.server")
 
@@ -22,10 +22,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from string import Template
+from fastapi.templating import Jinja2Templates
+import pathlib
+from fastapi.staticfiles import StaticFiles
+
+_src_dir = pathlib.Path(__file__).resolve().parent
+_asset_dir = _src_dir.parent / "asset"
+if _asset_dir.is_dir():
+    app.mount("/asset", StaticFiles(directory=str(_asset_dir)), name="asset")
+
+_static_dir = _src_dir / "static"
+if _static_dir.is_dir():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
+templates = Jinja2Templates(directory=str(_src_dir / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
-def get_home():
+def get_home(request: Request):
     from . import config as config_mod
     config = load_config()
     
@@ -33,34 +46,80 @@ def get_home():
     tunnel_url = config_mod.PUBLIC_TUNNEL_URL
     if tunnel_url:
         tunnel_info_card = f"""
-        <div class="info-card" style="background-color: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); color: #34d399; margin-top: 1rem;">
-            <strong>Active Public Tunnel Running:</strong><br>
-            Use this Custom App link in Spark/Gemini:<br>
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
-                <code id="mcp-link-text" style="word-break: break-all; flex-grow: 1; background: #0f172a; padding: 0.35rem 0.5rem; border-radius: 4px; border: 1px solid #334155;">{tunnel_url}/sse</code>
-                <button type="button" onclick="copyMcpLink()" style="background: #10b981; border: none; color: white; padding: 0.35rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; white-space: nowrap;">Copy</button>
+        <div class="bg-accent/5 border border-accent/30 rounded-2xl p-1 mb-7 shadow-[0_0_24px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.05)] transition-shadow duration-500">
+            <div class="bg-canvas border border-white/5 rounded-[14px] p-5 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <span class="text-[11px] font-bold tracking-[0.1em] uppercase text-zinc-400">Public MCP SSE Endpoint</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-mono text-[10px] font-semibold tracking-wide shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Connected
+                    </span>
+                </div>
+                <div class="flex flex-col sm:flex-row items-stretch gap-2">
+                    <input type="text" readonly id="mcp-link-text" class="flex-1 bg-surface-3 border border-white/10 rounded-xl px-4 py-3 font-mono text-[13px] text-emerald-300 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] focus:outline-none min-w-0 text-ellipsis whitespace-nowrap" value="{tunnel_url}/sse">
+                    <button type="button" id="copy-btn" class="inline-flex items-center justify-center gap-2 bg-accent text-white border-none rounded-xl px-4 py-3 font-sans text-sm font-semibold cursor-pointer whitespace-nowrap shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_8px_rgba(16,185,129,0.3)] hover:bg-accent-hover hover:shadow-[0_4px_12px_rgba(16,185,129,0.4)] hover:-translate-y-px active:translate-y-px active:scale-[0.98] transition-all">
+                        <span class="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-black/15 group-hover:translate-x-px group-hover:scale-105 transition-transform"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="#fff" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="#fff" stroke-width="2"/></svg></span> Copy URL
+                    </button>
+                    <button type="button" onclick="fetch('/tunnel-disconnect', {{method: 'POST'}}).then(() => window.location.reload())" class="inline-flex items-center justify-center gap-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl px-4 py-3 font-sans text-sm font-semibold cursor-pointer whitespace-nowrap hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30 active:scale-[0.98] transition-all">
+                        Disconnect
+                    </button>
+                </div>
             </div>
         </div>
         """
+        tunnel_card_visible = "true"
     else:
         tunnel_info_card = """
-        <div class="info-card" style="background-color: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); color: #fbbf24; margin-top: 1rem;">
-            <strong>No Public Tunnel Active:</strong><br>
-            To auto-start a public tunnel for Spark/Gemini, paste your Ngrok Authtoken below and save settings.
+        <div class="bg-surface-3/50 border border-white/5 rounded-2xl p-1 mb-7 transition-shadow duration-500" id="ep-waiting">
+            <div class="bg-canvas border border-white/5 rounded-[14px] p-5 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <span class="text-[11px] font-bold tracking-[0.1em] uppercase text-zinc-500">Public MCP SSE Endpoint</span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 font-mono text-[10px] font-semibold tracking-wide shadow-[0_0_12px_rgba(239,68,68,0.1)]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Disconnected
+                    </span>
+                </div>
+                <div class="flex flex-col sm:flex-row items-stretch gap-2">
+                    <input type="text" readonly id="mcp-link-text" class="flex-1 bg-surface-3/50 border border-white/5 rounded-xl px-4 py-3 font-mono text-[13px] text-zinc-500 shadow-inner focus:outline-none min-w-0 text-ellipsis whitespace-nowrap" value="Waiting for configuration...">
+                    <button type="button" disabled class="inline-flex items-center justify-center gap-2 bg-zinc-800 text-zinc-500 border border-transparent rounded-xl px-4 py-3 font-sans text-sm font-semibold cursor-not-allowed whitespace-nowrap">
+                        <span class="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-black/20"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/></svg></span> Copy URL
+                    </button>
+                </div>
+            </div>
         </div>
         """
+        tunnel_card_visible = "false"
 
-    tpl = Template(HTML_CONFIG_PAGE)
-    return tpl.safe_substitute(
-        current_mode=config.get("mode", "web"),
-        meta_phone_number_id=config.get("meta_phone_number_id", ""),
-        meta_waba_id=config.get("meta_waba_id", ""),
-        meta_access_token=config.get("meta_access_token", ""),
-        webhook_verify_token=config.get("webhook_verify_token", "wa_mcp_local_verify"),
-        ngrok_auth_token=config.get("ngrok_auth_token", ""),
-        ngrok_domain=config.get("ngrok_domain", ""),
-        tunnel_info_card=tunnel_info_card
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "request": request,
+            "current_mode": config.get("mode", "web"),
+            "meta_phone_number_id": config.get("meta_phone_number_id", ""),
+            "meta_waba_id": config.get("meta_waba_id", ""),
+            "meta_access_token": config.get("meta_access_token", ""),
+            "webhook_verify_token": config.get("webhook_verify_token", "wa_mcp_local_verify"),
+            "tunnel_info_card": tunnel_info_card,
+            "tunnel_card_visible": tunnel_card_visible,
+            "meta_client_id": config.get("meta_client_id", ""),
+            "meta_client_secret": config.get("meta_client_secret", ""),
+            "ngrok_auth_token": config.get("ngrok_auth_token", ""),
+            "ngrok_domain": config.get("ngrok_domain", "")
+        }
     )
+
+@app.get("/tunnel-status")
+def get_tunnel_status():
+    """Returns current tunnel URL for frontend auto-update polling."""
+    from . import config as config_mod
+    url = config_mod.PUBLIC_TUNNEL_URL
+    return JSONResponse({"tunnel_url": f"{url}/sse" if url else None})
+
+@app.post("/tunnel-disconnect")
+def post_tunnel_disconnect():
+    """Manually disconnects the running ngrok tunnel."""
+    from . import tunnel
+    tunnel.stop_tunnel()
+    return JSONResponse({"status": "disconnected"})
 
 @app.post("/save-config")
 def post_save_config(
@@ -95,7 +154,7 @@ def post_save_config(
         if mode == "web":
             gui.window.load_url("https://web.whatsapp.com")
         else:
-            gui.window.load_url("http://127.0.0.1:8000")
+            gui.window.load_url("http://127.0.0.1:48211")
 
     return HTMLResponse("<h2>Config Saved! Redirecting WebView window...</h2><script>setTimeout(() => window.location.href='/', 1500)</script>")
 

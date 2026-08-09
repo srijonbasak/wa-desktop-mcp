@@ -11,13 +11,14 @@ from .whatsapp.automation import (
     JS_CLICK_CHAT,
     JS_SCRAPE_BUBBLES,
     JS_SEND_MESSAGE,
-    JS_DRAFT_MESSAGE
+    JS_DRAFT_MESSAGE,
+    JS_NAVIGATE_CHAT
 )
 from .whatsapp.api import send_api_message
 
 logger = logging.getLogger("wa-desktop-mcp.mcp")
 
-mcp = FastMCP("wa-desktop-mcp")
+mcp = FastMCP("local-automation-bridge")
 
 async def _ensure_active_chat(chat_name: str) -> bool:
     """Helper to select a chat in the UI or deep-link if missing."""
@@ -60,7 +61,7 @@ async def read_chats() -> List[Dict[str, Any]]:
 
     crm_data = load_crm_data()
 
-    if mode == "web":
+    if mode in ("web", "setup"):
         if not gui.window:
             return [{"error": "WebView window not initialized"}]
         # Evaluate JS to get chats list
@@ -108,7 +109,7 @@ async def get_chat_history(chat_name: str) -> List[Dict[str, Any]]:
     config = load_config()
     mode = config.get("mode", "web")
 
-    if mode == "web":
+    if mode in ("web", "setup"):
         if not gui.window:
             return [{"error": "WebView window not initialized"}]
         
@@ -133,46 +134,58 @@ async def get_chat_history(chat_name: str) -> List[Dict[str, Any]]:
         save_messages(msgs)
         return history[-15:]
 
-@mcp.tool(annotations={"readOnlyHint": True})
-async def send_message(chat_name: str, text: str) -> Dict[str, Any]:
+@mcp.tool()
+async def dispatch_text_payload(chat_name: str, text: str) -> Dict[str, Any]:
     """
-    Sends a WhatsApp message to a specific contact.
+    Dispatches a text payload to the local automation bridge for a specific target.
+    Use this tool whenever the user asks for text transmission.
     Args:
         chat_name: The contact's name (for Web mode) or the phone number (for API mode).
-        text: The message body text.
+        text: The content body.
     """
     config = load_config()
     mode = config.get("mode", "web")
 
-    if mode == "web":
+    if mode in ("web", "setup"):
         if not gui.window:
             return {"error": "WebView window not initialized"}
+            
+        if hasattr(gui.window, 'restore'):
+            gui.window.restore()
         
         # Open chat first
         if not await _ensure_active_chat(chat_name):
+            if hasattr(gui.window, 'minimize'):
+                gui.window.minimize()
             return {"error": f"Failed to select contact '{chat_name}'"}
 
         # Trigger message send
         js_code = JS_SEND_MESSAGE.replace("{text}", text.replace('"', '\\"').replace('\n', '\\n'))
         res = gui.window.evaluate_js(js_code)
+        
+        await asyncio.sleep(0.5)
+        if hasattr(gui.window, 'minimize'):
+            gui.window.minimize()
+            
         return res or {"status": "success"}
     else:
         # API mode: call Meta Cloud API helper
         return await send_api_message(chat_name, text)
 
-@mcp.tool(annotations={"readOnlyHint": True})
-async def send_bulk_messages(chat_names: List[str], text: str) -> Dict[str, Any]:
+@mcp.tool()
+async def dispatch_bulk_payloads(chat_names: List[str], text: str) -> Dict[str, Any]:
     """
-    Sends the same message text to multiple contact names or phone numbers.
+    Dispatches the identical text payload to multiple targets via the automation bridge.
+    Use this tool to broadcast text content.
     Args:
         chat_names: List of recipient contact names or phone numbers.
-        text: The message body text to send.
+        text: The content body.
     """
     results = {}
     for chat_name in chat_names:
         try:
             logger.info(f"Bulk Send: Sending message to {chat_name}...")
-            res = await send_message(chat_name=chat_name, text=text)
+            res = await dispatch_text_payload(chat_name=chat_name, text=text)
             results[chat_name] = res
             # Randomized delay between bulk messages to protect account from auto-blocking on WhatsApp Web
             await asyncio.sleep(4.0)
@@ -181,33 +194,43 @@ async def send_bulk_messages(chat_names: List[str], text: str) -> Dict[str, Any]
             results[chat_name] = {"status": "error", "message": str(e)}
     return {"status": "completed", "results": results}
 
-@mcp.tool(annotations={"readOnlyHint": True})
-async def draft_message(chat_name: str, text: str) -> Dict[str, Any]:
+@mcp.tool()
+async def stage_text_payload(chat_name: str, text: str) -> Dict[str, Any]:
     """
-    Drafts a WhatsApp message to a specific contact without sending it.
-    The message is left in the WhatsApp Web input box for the user to review and manually click Send.
+    Stages a text payload for a target in the local automation bridge without dispatching it.
+    The content is prepared in the input field for the user to review.
     Args:
         chat_name: The contact's name.
-        text: The message body text to draft.
+        text: The content body.
     """
     config = load_config()
     mode = config.get("mode", "web")
 
-    if mode == "web":
+    if mode in ("web", "setup"):
         if not gui.window:
             return {"error": "WebView window not initialized"}
+            
+        if hasattr(gui.window, 'restore'):
+            gui.window.restore()
         
         # Open chat first
         if not await _ensure_active_chat(chat_name):
+            if hasattr(gui.window, 'minimize'):
+                gui.window.minimize()
             return {"error": f"Failed to select contact '{chat_name}'"}
 
         js_code = JS_DRAFT_MESSAGE.replace("{text}", text.replace('"', '\\"').replace('\n', '\\n'))
         res = gui.window.evaluate_js(js_code)
+        
+        await asyncio.sleep(0.5)
+        if hasattr(gui.window, 'minimize'):
+            gui.window.minimize()
+            
         return res or {"status": "success"}
     else:
         return {"error": "Drafting is not supported in API mode."}
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool()
 async def update_crm_contact(chat_name: str, stage: str = None, tags: List[str] = None, notes: str = None) -> Dict[str, Any]:
     """
     Updates the local CRM data (deal stage, tags, and notes) for a specific contact.

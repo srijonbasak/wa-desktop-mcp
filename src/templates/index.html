@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp MCP Companion</title>
+    <link rel="icon" type="image/png" href="/asset/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        accent: {
+                            DEFAULT: '#10b981', // Emerald 500
+                            hover: '#059669', // Emerald 600
+                            dim: 'rgba(16, 185, 129, 0.12)'
+                        },
+                        canvas: '#000000',
+                        surface: {
+                            1: 'rgba(24, 24, 27, 0.4)', // zinc-900 with opacity
+                            2: 'rgba(24, 24, 27, 0.8)',
+                            3: '#18181b', // zinc-900 solid
+                        }
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(4px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        body {
+            background-color: theme('colors.canvas');
+            background-image:
+                radial-gradient(ellipse 70% 60% at 50% -10%, rgba(16,185,129,0.12) 0%, transparent 80%),
+                radial-gradient(circle at 15% 50%, rgba(255,255,255,0.02) 0%, transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(16,185,129,0.04) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+        /* Custom scrollbar for inner areas */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
+    </style>
+
+    <!-- PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    
+    <script>
+        // Pass Python backend variables to PyScript via window
+        window.currentMode = "{{ current_mode }}";
+        window.tunnelCardVisible = "{{ tunnel_card_visible }}";
+    </script>
+</head>
+<body class="text-white min-h-[100dvh] flex flex-col font-sans antialiased overflow-x-hidden selection:bg-accent/30 selection:text-white">
+
+    <main class="flex-1 w-full px-4 sm:px-8 py-6 lg:py-8 flex flex-col items-center gap-6 lg:gap-8 h-full max-h-[100dvh]">
+        
+        <!-- HEADER (Centered & Symmetrical) -->
+        <header class="flex flex-col items-center text-center gap-3 animate-[fadeIn_0.6s_ease-out_forwards]" id="hdr">
+            <div class="flex items-center gap-4 w-full justify-between">
+                <div class="flex items-center gap-4">
+                    <img src="/asset/logo.png" alt="WhatsApp MCP" class="w-12 h-12 rounded-xl shadow-[0_4px_16px_rgba(16,185,129,0.15)] shrink-0">
+                </div>
+                <button type="button" onclick="window.location.href='https://web.whatsapp.com'" class="inline-flex items-center justify-center gap-2 bg-zinc-800 text-zinc-300 border border-white/10 rounded-xl px-4 py-2 font-sans text-sm font-semibold cursor-pointer whitespace-nowrap hover:bg-white/10 hover:text-white transition-all shadow-sm">
+                    Back to WhatsApp &rarr;
+                </button>
+            </div>
+            <div>
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.05] mb-2">
+                    WhatsApp <span class="text-accent font-normal italic">MCP Bridge</span>
+                </h1>
+                <p class="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-[65ch] font-light mx-auto">
+                    Expose your local WhatsApp session as a secure MCP endpoint. Plug into Google Gemini, Claude Desktop, or Cursor in under two minutes.
+                </p>
+            </div>
+        </header>
+
+        <!-- TWO SYMMETRICAL COLUMNS -->
+        <div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch flex-1 min-h-0">
+            
+            <!-- LEFT COLUMN (Config) -->
+            <div class="animate-[fadeIn_0.6s_ease-out_forwards] [animation-delay:100ms] opacity-0 bg-surface-1 backdrop-blur-xl border border-white/10 p-1.5 rounded-[2rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_48px_-12px_rgba(0,0,0,0.8)] transition-shadow duration-500 w-full h-full flex flex-col" id="c2">
+                <div class="bg-surface-2 border border-white/5 rounded-[1.6rem] p-6 sm:p-8 custom-scroll shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)] h-full">
+                    
+                    <p class="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-500 mb-4">Connection Mode</p>
+                    
+                    <!-- Mode Toggle -->
+                    <div class="flex bg-zinc-900/50 border border-white/5 rounded-xl p-1 mb-6 shadow-inner">
+                        <button type="button" class="flex-1 py-2.5 px-3 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all mode-btn" id="btn-web">WhatsApp Web (No API Key)</button>
+                        <button type="button" class="flex-1 py-2.5 px-3 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all mode-btn" id="btn-api">Meta Cloud API</button>
+                    </div>
+
+                    <form action="/save-config" method="POST" id="cfg">
+                        <input type="hidden" name="mode" id="mode-in" value="web">
+
+                        <div id="web-info" class="bg-accent/10 border border-accent/20 text-emerald-300 rounded-xl p-4 text-sm leading-relaxed mb-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                            <strong class="font-semibold text-emerald-400">Zero API key required.</strong> The companion window will open WhatsApp Web. Scan the QR code once &mdash; your session is saved locally.
+                        </div>
+
+                        <div id="api-fields" class="hidden space-y-5">
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-1.5" for="meta_phone_number_id">Meta Phone Number ID</label>
+                                <input type="text" name="meta_phone_number_id" id="meta_phone_number_id" value="{{ meta_phone_number_id }}" placeholder="e.g. 123456789012345" class="w-full bg-surface-3 border border-white/10 rounded-xl px-4 py-3 font-mono text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all shadow-inner">
+                                <p class="text-xs text-zinc-500 mt-2 leading-relaxed">Open <a href="https://developers.facebook.com/apps" target="_blank" class="text-zinc-400 hover:text-white border-b border-zinc-700 hover:border-white transition-colors">Meta Developer Console</a> &rarr; your App &rarr; WhatsApp &rarr; API Setup. Copy the <strong>Phone Number ID</strong> shown there.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-1.5" for="meta_waba_id">WABA ID</label>
+                                <input type="text" name="meta_waba_id" id="meta_waba_id" value="{{ meta_waba_id }}" placeholder="e.g. 987654321098765" class="w-full bg-surface-3 border border-white/10 rounded-xl px-4 py-3 font-mono text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all shadow-inner">
+                                <p class="text-xs text-zinc-500 mt-2 leading-relaxed">Same page &mdash; copy the <strong>WhatsApp Business Account ID</strong> numeric string.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-1.5" for="meta_access_token">System User Access Token</label>
+                                <input type="password" name="meta_access_token" id="meta_access_token" value="{{ meta_access_token }}" placeholder="EAAxxxxxxx..." class="w-full bg-surface-3 border border-white/10 rounded-xl px-4 py-3 font-mono text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all shadow-inner">
+                                <p class="text-xs text-zinc-500 mt-2 leading-relaxed">Go to <a href="https://business.facebook.com/settings/system-users" target="_blank" class="text-zinc-400 hover:text-white border-b border-zinc-700 hover:border-white transition-colors">Business Settings &rarr; System Users</a> &rarr; Generate Token. Grant <code>whatsapp_business_messaging</code> permission.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-1.5" for="webhook_verify_token">Webhook Verify Token</label>
+                                <input type="text" name="webhook_verify_token" id="webhook_verify_token" value="{{ webhook_verify_token }}" placeholder="e.g. wa_mcp_local_verify" class="w-full bg-surface-3 border border-white/10 rounded-xl px-4 py-3 font-mono text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all shadow-inner">
+                                <p class="text-xs text-zinc-500 mt-2 leading-relaxed">A secret phrase you pick. Paste the same value into Meta Console &rarr; Webhooks &rarr; Verify Token. Callback URL = your ngrok URL + <code>/webhook</code></p>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-white/10 my-8"></div>
+                        <p class="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-500 mb-5">Public Tunnel <span class="font-normal normal-case tracking-normal">(required for Gemini)</span></p>
+
+                        <div class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-1.5" for="ngrok_auth_token">Ngrok Authtoken</label>
+                                <input type="password" name="ngrok_auth_token" id="ngrok_auth_token" value="{{ ngrok_auth_token }}" placeholder="2abc1defXYZ_abcdefghijklmnop12345678" class="w-full bg-surface-3 border border-white/10 rounded-xl px-4 py-3 font-mono text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all shadow-inner">
+                                <p class="text-xs text-zinc-500 mt-2 leading-relaxed">
+                                    Get from <a href="https://dashboard.ngrok.com/get-started/your-authtoken" target="_blank" class="text-zinc-400 hover:text-white border-b border-zinc-700 hover:border-white transition-colors">dashboard.ngrok.com</a>
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-white mb-1.5" for="ngrok_domain">Ngrok Custom Domain <span class="text-zinc-500 font-normal">(optional)</span></label>
+                                <input type="text" name="ngrok_domain" id="ngrok_domain" value="{{ ngrok_domain }}" placeholder="your-domain.ngrok-free.dev" class="w-full bg-surface-3 border border-white/10 rounded-xl px-4 py-3 font-mono text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/15 transition-all shadow-inner">
+                                <p class="text-xs text-zinc-500 mt-2 leading-relaxed">
+                                    Reserve at <a href="https://dashboard.ngrok.com/cloud-edge/domains" target="_blank" class="text-zinc-400 hover:text-white border-b border-zinc-700 hover:border-white transition-colors">Cloud Edge &rarr; Domains</a>
+                                </p>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full mt-8 flex items-center justify-center gap-2 bg-white text-black font-bold text-[15px] py-3.5 px-5 rounded-xl hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_4px_12px_rgba(255,255,255,0.1),inset_0_-2px_0_rgba(0,0,0,0.1)] hover:shadow-[0_6px_16px_rgba(255,255,255,0.15),inset_0_-2px_0_rgba(0,0,0,0.1)] group" id="save-btn">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" class="shrink-0 group-hover:translate-x-0.5 transition-transform"><path d="M13.5 4.5L6.5 11.5L2.5 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Save Settings &amp; Connect
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN (Endpoint & Guides) -->
+            <div class="animate-[fadeIn_0.6s_ease-out_forwards] [animation-delay:200ms] opacity-0 bg-surface-1 backdrop-blur-xl border border-white/10 p-1.5 rounded-[2rem] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_48px_-12px_rgba(0,0,0,0.8)] transition-shadow duration-500 w-full h-full flex flex-col min-h-0" id="c1">
+                <div class="bg-surface-2 border border-white/5 rounded-[1.6rem] p-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.04)] w-full flex flex-col h-full overflow-hidden">
+                    
+                    <div id="endpoint-container" class="w-full mb-6">
+                        {{ tunnel_info_card | safe }}
+                    </div>
+
+                    <p class="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-500 mb-3 shrink-0">Connect your AI client</p>
+                    
+                    <div class="flex gap-2 mb-4 border-b border-white/5 pb-3 overflow-x-auto custom-scroll shrink-0">
+                        <button class="tb px-3.5 py-2 text-[13px] font-medium rounded-lg text-white bg-accent-dim border border-accent/30 shadow-sm whitespace-nowrap transition-colors">Google Gemini</button>
+                        <button class="tb px-3.5 py-2 text-[13px] font-medium rounded-lg text-zinc-400 border border-transparent hover:text-white hover:bg-white/5 whitespace-nowrap transition-colors">Claude Desktop</button>
+                        <button class="tb px-3.5 py-2 text-[13px] font-medium rounded-lg text-zinc-400 border border-transparent hover:text-white hover:bg-white/5 whitespace-nowrap transition-colors">Cursor IDE</button>
+                    </div>
+
+                    <!-- Guides Container -->
+                    <div class="flex-1 overflow-y-auto custom-scroll min-h-0 pr-2 pb-2">
+                        <!-- Gemini Guide -->
+                        <div id="guide-gemini" class="gp block animate-[fadeIn_0.4s_ease-out]">
+                            <p class="text-sm font-bold text-white mb-4">Connect to Google Gemini / AI Studio</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">1</span>
+                                    <span>Open <a href="https://aistudio.google.com" target="_blank" class="text-white hover:text-accent border-b border-white/30 hover:border-accent transition-colors font-medium">aistudio.google.com</a> and sign in.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">2</span>
+                                    <span>Click the gear icon &rarr; <strong>Settings</strong> &rarr; <strong>MCP Servers</strong>.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">3</span>
+                                    <span>Click <strong>+ Add MCP Server</strong>. Set transport to <code>SSE</code>.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">4</span>
+                                    <span>Paste the URL you copied above. Click <strong>Save</strong>.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Claude Guide -->
+                        <div id="guide-claude" class="gp hidden animate-[fadeIn_0.4s_ease-out]">
+                            <p class="text-sm font-bold text-white mb-4">Connect to Claude Desktop</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">1</span>
+                                    <span>Open Claude Desktop. Click the menu &rarr; <strong>Settings</strong> &rarr; <strong>Developer</strong>.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">2</span>
+                                    <span>Click <strong>Edit Config</strong>.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">3</span>
+                                    <div class="flex-1">
+                                        <span>Add the following JSON configuration:</span>
+                                        <div class="mt-3 bg-surface-3/50 border border-white/5 rounded-xl p-4 font-mono text-[11px] text-zinc-300 overflow-x-auto shadow-inner whitespace-pre">
+"mcpServers": {
+  "whatsapp": {
+    "command": "node",
+    "args": ["...mcp-client...", "sse", "<PASTE_URL_HERE>"]
+  }
+}</div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Cursor Guide -->
+                        <div id="guide-cursor" class="gp hidden animate-[fadeIn_0.4s_ease-out]">
+                            <p class="text-sm font-bold text-white mb-4">Connect to Cursor IDE</p>
+                            <ul class="space-y-3">
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">1</span>
+                                    <span>Open Cursor. Click the gear icon &rarr; <strong>Cursor Settings</strong> &rarr; <strong>Features</strong>.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">2</span>
+                                    <span>Scroll to <strong>MCP</strong> and click <strong>+ Add New MCP Server</strong>.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">3</span>
+                                    <span>Set the type to <strong>SSE</strong>.</span>
+                                </li>
+                                <li class="flex items-start gap-3 text-[13px] text-zinc-400 leading-relaxed">
+                                    <span class="flex items-center justify-center min-w-5 h-5 rounded-full bg-surface-3 border border-white/10 font-mono text-[10px] font-bold text-white mt-0.5">4</span>
+                                    <span>Paste the URL you copied above and click <strong>Add</strong>.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-zinc-800 border border-emerald-500/50 text-emerald-400 px-5 py-3 rounded-xl font-sans text-sm font-semibold shadow-[0_16px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] opacity-0 translate-y-4 pointer-events-none transition-all duration-300 z-50">
+        MCP URL copied to clipboard
+    </div>
+
+
+
+    <!-- PyScript Logic -->
+    <script type="py" src="/static/py/frontend_logic.py"></script>
+
+</body>
+</html>
